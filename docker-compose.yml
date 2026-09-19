@@ -1,0 +1,24 @@
+services:
+  story-auditor:
+    build: .
+    image: branching-story-auditor:latest
+    container_name: branching-story-auditor
+    ports:
+      - "3000:3000"
+    environment:
+      # 应用监听端口（容器内）
+      PORT: "3000"
+      # 首次启动且数据目录为空时，自动播种示例剧情；设为 false 可关闭
+      SEED_ON_START: "true"
+    volumes:
+      # 剧情 JSON 持久化到宿主机，容器重建不丢数据
+      - story-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/stories"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  story-data:
