@@ -42,6 +42,8 @@ docker compose down -v       # 同时删除剧情数据卷
 docker compose logs -f
 ```
 
+Compose 健康检查使用容器内的 Node 探针 `healthcheck.js`（无第三方依赖）：固定通过 `127.0.0.1` 请求 `/api/stories`，仅当请求在超时内返回 2xx 且响应可解析为 JSON 数组时判定健康；连接失败、超时、非 2xx 或畸形响应均判定为不健康。之所以不用 `wget localhost`：容器内 `localhost` 可能解析到 IPv6 的 `::1`，而应用只监听 IPv4 的 `0.0.0.0`，会把正常容器误判为 unhealthy。
+
 ## 不使用 Docker（本地 Node.js 运行）
 
 要求 Node.js ≥ 18。
@@ -168,6 +170,7 @@ npm start
 ```
 .
 ├── server.js              # Express 入口与 REST API（含基线接口）
+├── healthcheck.js         # 容器健康探针（仅用 Node 内置模块，固定走 127.0.0.1）
 ├── src/
 │   ├── expression.js      # 布尔表达式递归下降解析器 / 求值 / 失败解释
 │   ├── analyzer.js        # 「场景+状态」BFS 传播去重分析引擎（附带问题指纹）
@@ -181,7 +184,8 @@ npm start
 ├── samples/               # 随启动初始化的示例剧情
 ├── test/
 │   ├── smoke.js           # 分析引擎自检（node test/smoke.js）
-│   └── baseline.js        # 指纹 / 基线对比 / 持久化自检（node test/baseline.js）
+│   ├── baseline.js        # 指纹 / 基线对比 / 持久化自检（node test/baseline.js）
+│   └── healthcheck.js     # 健康探针回归测试（node test/healthcheck.js）
 ├── Dockerfile
 └── docker-compose.yml
 ```
@@ -189,7 +193,7 @@ npm start
 自检：
 
 ```bash
-npm test          # 依次运行 smoke.js 与 baseline.js
+npm test          # 依次运行 smoke.js、baseline.js 与 healthcheck.js
 ```
 
 ## 技术栈

@@ -8,6 +8,7 @@ RUN npm install --omit=dev
 
 # 拷贝应用源码
 COPY server.js ./
+COPY healthcheck.js ./
 COPY src ./src
 COPY public ./public
 COPY samples ./samples
