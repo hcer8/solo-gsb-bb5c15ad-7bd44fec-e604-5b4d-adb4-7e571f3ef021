@@ -15,7 +15,11 @@ services:
       - story-data:/app/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/stories"]
+      # 容器内 Node 探针（scripts/healthcheck.js，无第三方依赖）：
+      # 固定经 127.0.0.1 访问 /api/stories，规避 localhost 解析到 IPv6
+      # （::1）而服务只监听 0.0.0.0（IPv4）时 wget 误判 unhealthy 的问题。
+      # 仅当在超时内返回 2xx 且响应体为 JSON 数组时退出 0。
+      test: ["CMD", "node", "scripts/healthcheck.js"]
       interval: 30s
       timeout: 5s
       retries: 3

@@ -42,6 +42,15 @@ docker compose down -v       # 同时删除剧情数据卷
 docker compose logs -f
 ```
 
+容器内置健康检查：Compose 会在容器内运行随镜像分发的 Node 探针
+`scripts/healthcheck.js`（仅使用 Node 内置模块，无第三方依赖）。探针**固定通过
+`127.0.0.1`** 请求 `GET /api/stories`——此前使用 `wget http://localhost:...`
+时，部分环境会把 `localhost` 解析到 IPv6 的 `::1`，而应用监听的是 `0.0.0.0`
+（IPv4），导致服务正常却被误判为 unhealthy。探针仅在请求在超时内返回 **2xx**
+且响应体可解析为 **JSON 数组**时退出 0；连接失败、超时、非 2xx 或响应体畸形
+均退出非 0。探针超时由 `HEALTHCHECK_TIMEOUT_MS` 控制（默认 4000ms，小于
+Compose healthcheck 的 5s 超时）。
+
 ## 不使用 Docker（本地 Node.js 运行）
 
 要求 Node.js ≥ 18。
@@ -61,6 +70,7 @@ npm start
 | `HOST` | `0.0.0.0` | 监听地址 |
 | `DATA_DIR` | Docker 内 `/app/data`；本地 `./data` | 剧情 JSON 文件的持久化目录 |
 | `SEED_ON_START` | `true` | 数据目录为空时是否自动播种 `samples/` 下的示例剧情；设为 `false` 关闭 |
+| `HEALTHCHECK_TIMEOUT_MS` | `4000` | 容器健康检查探针自身的请求超时（毫秒），需小于 Compose healthcheck 的 `timeout`（5s）；仅容器内探针使用 |
 
 ## 条件表达式语法
 
@@ -179,9 +189,12 @@ npm start
 │   ├── styles.css
 │   └── app.js
 ├── samples/               # 随启动初始化的示例剧情
+├── scripts/
+│   └── healthcheck.js      # 容器健康检查探针（固定走 127.0.0.1，无第三方依赖）
 ├── test/
 │   ├── smoke.js           # 分析引擎自检（node test/smoke.js）
-│   └── baseline.js        # 指纹 / 基线对比 / 持久化自检（node test/baseline.js）
+│   ├── baseline.js        # 指纹 / 基线对比 / 持久化自检（node test/baseline.js）
+│   └── healthcheck.js     # 健康检查探针回归测试（node test/healthcheck.js）
 ├── Dockerfile
 └── docker-compose.yml
 ```

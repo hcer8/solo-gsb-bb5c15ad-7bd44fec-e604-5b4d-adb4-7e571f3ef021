@@ -11,6 +11,8 @@ COPY server.js ./
 COPY src ./src
 COPY public ./public
 COPY samples ./samples
+# 容器内健康检查探针（无第三方依赖的 Node 脚本）
+COPY scripts ./scripts
 
 ENV NODE_ENV=production \
     PORT=3000 \
